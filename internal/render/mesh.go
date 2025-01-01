@@ -1,10 +1,10 @@
 package render
 
 import (
-	"math/rand"
 	"renderIdk/internal/camera"
 	"renderIdk/internal/vector"
 
+	"github.com/google/uuid"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -56,45 +56,37 @@ func (s Scene) AddCuboid(size, position vector.Vector3, R, G, B, A uint8) Scene 
 		Color: sdl.Color{R: R, G: G, B: B, A: A},
 	}
 
-	return s.AddObject(Object{Mesh: mesh})
+	return s.AddObject(Object{Mesh: mesh}, uuid.New())
 }
 
-func (s Scene) AddObject(object Object) Scene {
-	objects := make(map[ID]Object)
-	for id, obj := range s.Objects {
-		objects[id] = obj
+func (s Scene) AddObject(object Object, id uuid.UUID) Scene {
+	if s.Objects == nil {
+		s.Objects = make(map[uuid.UUID]Object)
 	}
 
-	id := ID{rand.Int(), rand.Int(), rand.Int(), rand.Int()}
-	for {
-		if _, ok := s.Objects[id]; !ok {
-			break
-		}
-		id = ID{rand.Int(), rand.Int(), rand.Int(), rand.Int()}
-	}
-
+	objects := s.Objects
 	objects[id] = object
 	return Scene{Camera: s.Camera, Objects: objects}
 }
 
 func (m Mesh) Render(renderer *sdl.Renderer, cam camera.Camera) {
 	for _, triangle := range m.Faces {
-		projectedVertices := []vector.Vector3{
+		projectedFace := Triangle{
 			cam.Project(triangle[0]),
 			cam.Project(triangle[1]),
 			cam.Project(triangle[2]),
 		}
 
-		if !cam.CheckVisible(projectedVertices[0], projectedVertices[1]) ||
-			!cam.CheckVisible(projectedVertices[1], projectedVertices[2]) ||
-			!cam.CheckVisible(projectedVertices[2], projectedVertices[0]) {
+		if !cam.CheckVisible(projectedFace[0], projectedFace[1]) ||
+			!cam.CheckVisible(projectedFace[1], projectedFace[2]) ||
+			!cam.CheckVisible(projectedFace[2], projectedFace[0]) {
 			continue
 		}
 
 		fPoints := []sdl.FPoint{
-			projectedVertices[0].AsFPoint(),
-			projectedVertices[1].AsFPoint(),
-			projectedVertices[2].AsFPoint(),
+			projectedFace[0].AsFPoint(),
+			projectedFace[1].AsFPoint(),
+			projectedFace[2].AsFPoint(),
 		}
 
 		vertices := []sdl.Vertex{
@@ -108,3 +100,13 @@ func (m Mesh) Render(renderer *sdl.Renderer, cam camera.Camera) {
 }
 
 type Triangle [3]vector.Vector3
+
+func (t Triangle) Normal() vector.Vector3 {
+	ab := t[1].Subtract(t[0])
+	ac := t[2].Subtract(t[0])
+	return ab.Cross(ac).Normalize()
+}
+
+func (t Triangle) Center() vector.Vector3 {
+	return t[0].Translate(t[1]).Translate(t[2]).Scale(vector.Vector3{X: 1.0 / 3, Y: 1.0 / 3, Z: 1.0 / 3})
+}

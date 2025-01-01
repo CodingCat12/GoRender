@@ -30,10 +30,6 @@ func (c Camera) FocalLength() float64 {
 	return config.WinWidth / (2 * math.Tan(fovRadians/2))
 }
 
-func (c Camera) FovY() float64 {
-	return c.FovX * config.WinHeight / config.WinWidth
-}
-
 func (c Camera) CheckVisible(v ...vector.Vector3) bool {
 	for _, vec := range v {
 		if vec.Z < c.NearClip || vec.Z > c.FarClip {

@@ -5,12 +5,13 @@ import (
 
 	"slices"
 
+	"github.com/google/uuid"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 type Scene struct {
 	Camera  camera.Camera
-	Objects map[ID]Object
+	Objects map[uuid.UUID]Object
 }
 
 func (s Scene) Render(renderer *sdl.Renderer) {
